@@ -3,9 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#08111d" />
+  <link rel="manifest" href="manifest.json" />
   <title>Smart Library Quiet Zone Monitor</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -18,6 +21,8 @@
       <div class="hero-actions">
         <button id="connect-button" class="primary-btn">Connect Arduino</button>
         <button id="export-button" class="secondary-btn">Export CSV</button>
+        <button id="export-pdf-button" class="secondary-btn">Download PDF Report</button>
+        <button id="install-button" class="secondary-btn hidden">Install App</button>
         <button id="reset-button" class="danger-btn">Reset Statistics</button>
       </div>
     </header>

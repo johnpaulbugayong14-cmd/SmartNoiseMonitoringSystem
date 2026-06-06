@@ -1,6 +1,8 @@
 const connectButton = document.getElementById('connect-button');
 const exportButton = document.getElementById('export-button');
+const exportPdfButton = document.getElementById('export-pdf-button');
 const resetButton = document.getElementById('reset-button');
+const installButton = document.getElementById('install-button');
 const unsupportedMessage = document.getElementById('unsupported-message');
 const connectionStatus = document.getElementById('connection-status');
 const currentNoise = document.getElementById('current-noise');
@@ -23,6 +25,7 @@ let lastAlertTime = '--';
 let activityLog = [];
 let chartData = [];
 let noiseChart = null;
+let deferredInstallPrompt = null;
 
 const STORAGE_KEY = 'smartLibraryQuietZone';
 
@@ -35,6 +38,13 @@ const statusStyles = {
 };
 
 window.addEventListener('load', init);
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installButton) {
+    installButton.classList.remove('hidden');
+  }
+});
 connectButton.addEventListener('click', () => {
   if (readActive) {
     disconnectArduino();
@@ -43,6 +53,21 @@ connectButton.addEventListener('click', () => {
   }
 });
 exportButton.addEventListener('click', exportCSV);
+if (exportPdfButton) {
+  exportPdfButton.addEventListener('click', exportPDF);
+}
+if (installButton) {
+  installButton.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    }
+    installButton.classList.add('hidden');
+    deferredInstallPrompt = null;
+  });
+}
 resetButton.addEventListener('click', resetStatistics);
 
 async function init() {
@@ -50,10 +75,22 @@ async function init() {
     unsupportedMessage.classList.remove('hidden');
     connectButton.disabled = true;
   }
+  registerServiceWorker();
   loadFromLocalStorage();
   createChart();
   renderActivityLog();
   updateDashboard();
+}
+
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('service-worker.js');
+      console.log('Service worker registered');
+    } catch (error) {
+      console.warn('Service worker registration failed:', error);
+    }
+  }
 }
 
 async function connectArduino() {
@@ -313,6 +350,87 @@ function exportCSV() {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+function exportPDF() {
+  if (!window.jspdf) {
+    alert('PDF library not loaded.');
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 14;
+  doc.setFontSize(16);
+  doc.text('Smart Noise Monitoring Report', 14, y);
+  y += 8;
+  doc.setFontSize(10);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, y);
+  y += 8;
+
+  // Add chart image if available
+  try {
+    if (noiseChart && typeof noiseChart.toBase64Image === 'function') {
+      const img = noiseChart.toBase64Image();
+      doc.addImage(img, 'PNG', 14, y, 180, 60);
+      y += 68;
+    }
+  } catch (err) {
+    console.warn('Could not add chart image to PDF:', err);
+  }
+
+  // Summary
+  doc.setFontSize(12);
+  doc.text('Summary', 14, y);
+  y += 6;
+  const avg = chartData.length ? Math.round(chartData.reduce((s, i) => s + i.db, 0) / chartData.length) : 'N/A';
+  const lines = [
+    `Total violations: ${violations}`,
+    `Quiet score: ${score}%`,
+    `Average dB: ${avg}`
+  ];
+  doc.setFontSize(10);
+  for (const line of lines) {
+    doc.text(line, 14, y);
+    y += 6;
+  }
+  y += 4;
+
+  // Activity log
+  doc.setFontSize(12);
+  doc.text('Activity Log', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  if (activityLog.length === 0) {
+    doc.text('No loud noise alerts recorded.', 14, y);
+    y += 6;
+  } else {
+    for (let i = 0; i < activityLog.length; i++) {
+      if (y > 270) { doc.addPage(); y = 14; }
+      const entry = activityLog[i];
+      const row = `${entry.time} | ${entry.db} dB | ${entry.status}`;
+      doc.text(row, 14, y);
+      y += 6;
+    }
+  }
+
+  // Recommendations
+  if (y > 240) { doc.addPage(); y = 14; }
+  doc.setFontSize(12);
+  doc.text('Recommendations', 14, y);
+  y += 6;
+  const recs = [];
+  if (violations > 10) recs.push('Increase enforcement and place visible quiet zone signage.');
+  if (avg !== 'N/A' && avg > 65) recs.push('Consider acoustic treatment and optimize sensor placement.');
+  if (score < 80) recs.push('Run awareness campaigns and schedule staff reminders.');
+  if (recs.length === 0) recs.push('Current status looks good. Maintain monitoring.');
+  doc.setFontSize(10);
+  for (const r of recs) {
+    if (y > 280) { doc.addPage(); y = 14; }
+    doc.text(`- ${r}`, 14, y);
+    y += 6;
+  }
+
+  doc.save('noise_report.pdf');
 }
 
 function resetStatistics() {
