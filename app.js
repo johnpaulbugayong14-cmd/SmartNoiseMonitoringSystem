@@ -3,6 +3,7 @@ const exportPdfButton = document.getElementById('export-pdf-button');
 const resetButton = document.getElementById('reset-button');
 const installButton = document.getElementById('install-button');
 const unsupportedMessage = document.getElementById('unsupported-message');
+const reportTimestamp = document.getElementById('report-timestamp');
 const connectionStatus = document.getElementById('connection-status');
 const currentNoise = document.getElementById('current-noise');
 const currentStatusLabel = document.getElementById('current-status');
@@ -74,10 +75,26 @@ async function init() {
     connectButton.disabled = true;
   }
   registerServiceWorker();
+  updateReportTimestamp();
+  setInterval(updateReportTimestamp, 1000);
   loadFromLocalStorage();
   createChart();
   renderActivityLog();
   updateDashboard();
+}
+
+function updateReportTimestamp() {
+  if (!reportTimestamp) return;
+  const now = new Date();
+  reportTimestamp.textContent = now.toLocaleString([], {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
 }
 
 async function registerServiceWorker() {
@@ -347,16 +364,22 @@ function exportPDF() {
   const pageWidth = 210; // A4 width in mm
   let y = 16;
 
+  // Report top-line date/time
+  doc.setTextColor(10, 24, 37);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`Report generated: ${new Date().toLocaleString()}`, 14, 10);
+
   // Header
   doc.setFillColor(13, 20, 29);
-  doc.rect(0, 0, pageWidth, 24, 'F');
+  doc.rect(0, 12, pageWidth, 24, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('Smart Noise Monitoring Report', 14, 14);
+  doc.text('Smart Noise Monitoring Report', 14, 24);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 14, { align: 'right' });
+  doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 24, { align: 'right' });
 
   y = 30;
 
