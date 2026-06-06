@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Library Quiet Zone Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero-card">
+      <div>
+        <p class="eyebrow">Noise Monitoring System</p>
+        <h1>Smart Noise Monitoring System</h1>
+        <p class="subtitle">Real-Time Noise Monitoring Dashboard</p>
+      </div>
+      <div class="hero-actions">
+        <button id="connect-button" class="primary-btn">Connect Arduino</button>
+        <button id="export-button" class="secondary-btn">Export CSV</button>
+        <button id="reset-button" class="danger-btn">Reset Statistics</button>
+      </div>
+    </header>
+
+    <div id="unsupported-message" class="alert hidden">
+      <strong>This browser does not support Web Serial API.</strong>
+      Please use Google Chrome or Microsoft Edge.
+    </div>
+
+    <section class="status-grid">
+      <article class="status-card card-light">
+        <h2>Arduino Status</h2>
+        <p id="connection-status" class="status-value disconnected">🔴 Disconnected</p>
+      </article>
+      <article class="status-card card-accent">
+        <h2>Current Noise Level</h2>
+        <p id="current-noise" class="large-value">-- dB</p>
+      </article>
+      <article class="status-card card-warm">
+        <h2>Current Status</h2>
+        <p id="current-status" class="large-value status-tag">🔴 DISCONNECTED</p>
+      </article>
+      <article class="status-card card-surface">
+        <h2>Noise Violations Today</h2>
+        <p id="violation-count" class="large-value">0</p>
+      </article>
+      <article class="status-card card-surface">
+        <h2>Quiet Zone Score</h2>
+        <p id="quiet-score" class="large-value">100%</p>
+      </article>
+      <article class="status-card card-surface">
+        <h2>Last Alert Time</h2>
+        <p id="last-alert" class="large-value">--</p>
+      </article>
+    </section>
+
+    <section class="main-grid">
+      <article class="chart-card">
+        <div class="chart-header">
+          <h2>Live Noise Trend</h2>
+          <span class="badge">Real-Time</span>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="noise-chart"></canvas>
+        </div>
+      </article>
+
+      <article class="log-card">
+        <div class="log-header">
+          <h2>Activity Log</h2>
+          <p>Latest loud noise alerts appear here.</p>
+        </div>
+        <div class="log-table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>dB</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="activity-log-body">
+              <tr><td colspan="3" class="empty-row">No loud noise alerts yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
