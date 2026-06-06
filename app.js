@@ -57,7 +57,10 @@ if (exportPdfButton) {
 }
 if (installButton) {
   installButton.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
+    if (!deferredInstallPrompt) {
+      alert('Install is not ready yet. Please refresh the page after using the app in Chrome or Edge.');
+      return;
+    }
     deferredInstallPrompt.prompt();
     const choice = await deferredInstallPrompt.userChoice;
     if (choice.outcome === 'accepted') {
@@ -67,6 +70,10 @@ if (installButton) {
     deferredInstallPrompt = null;
   });
 }
+
+window.addEventListener('appinstalled', () => {
+  console.log('PWA installed successfully');
+});
 resetButton.addEventListener('click', resetStatistics);
 
 async function init() {

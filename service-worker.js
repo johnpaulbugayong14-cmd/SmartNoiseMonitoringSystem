@@ -6,6 +6,8 @@ const ASSETS = [
   './app.js',
   './manifest.json',
   './icons/app-icon.svg',
+  './icons/app-icon-192.png',
+  './icons/app-icon-512.png',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
