@@ -1,5 +1,4 @@
 const connectButton = document.getElementById('connect-button');
-const exportButton = document.getElementById('export-button');
 const exportPdfButton = document.getElementById('export-pdf-button');
 const resetButton = document.getElementById('reset-button');
 const installButton = document.getElementById('install-button');
@@ -52,7 +51,6 @@ connectButton.addEventListener('click', () => {
     connectArduino();
   }
 });
-exportButton.addEventListener('click', exportCSV);
 if (exportPdfButton) {
   exportPdfButton.addEventListener('click', exportPDF);
 }
@@ -337,20 +335,7 @@ function renderActivityLog() {
   }
 }
 
-function exportCSV() {
-  const header = ['Time', 'dB', 'Status'];
-  const rows = activityLog.map(entry => [entry.time, entry.db, entry.status]);
-  const csv = [header, ...rows].map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'library_noise_report.csv';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
+// CSV export removed per request
 
 function exportPDF() {
   if (!window.jspdf) {
@@ -358,63 +343,99 @@ function exportPDF() {
     return;
   }
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  let y = 14;
-  doc.setFontSize(16);
-  doc.text('Smart Noise Monitoring Report', 14, y);
-  y += 8;
-  doc.setFontSize(10);
-  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, y);
-  y += 8;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageWidth = 210; // A4 width in mm
+  let y = 16;
 
-  // Add chart image if available
+  // Header
+  doc.setFillColor(13, 20, 29);
+  doc.rect(0, 0, pageWidth, 24, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Smart Noise Monitoring Report', 14, 14);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth - 14, 14, { align: 'right' });
+
+  y = 30;
+
+  // Chart (centered)
   try {
     if (noiseChart && typeof noiseChart.toBase64Image === 'function') {
       const img = noiseChart.toBase64Image();
-      doc.addImage(img, 'PNG', 14, y, 180, 60);
-      y += 68;
+      const imgWidth = 170; // mm
+      const imgHeight = 60; // mm
+      const x = (pageWidth - imgWidth) / 2;
+      doc.addImage(img, 'PNG', x, y, imgWidth, imgHeight);
+      y += imgHeight + 6;
     }
   } catch (err) {
     console.warn('Could not add chart image to PDF:', err);
   }
 
-  // Summary
-  doc.setFontSize(12);
-  doc.text('Summary', 14, y);
-  y += 6;
+  // Summary card
   const avg = chartData.length ? Math.round(chartData.reduce((s, i) => s + i.db, 0) / chartData.length) : 'N/A';
-  const lines = [
-    `Total violations: ${violations}`,
-    `Quiet score: ${score}%`,
-    `Average dB: ${avg}`
-  ];
+  doc.setDrawColor(200);
+  doc.setFillColor(245, 247, 250);
+  const cardX = 14;
+  const cardW = pageWidth - 28;
+  const cardH = 24;
+  doc.roundedRect(cardX, y, cardW, cardH, 2, 2, 'F');
+  doc.setTextColor(10, 24, 37);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Summary', cardX + 4, y + 8);
+  doc.setFont('helvetica', 'normal');
+  const summaryLines = [`Total violations: ${violations}`, `Quiet score: ${score}%`, `Average dB: ${avg}`];
+  let sx = cardX + 4;
+  let sy = y + 15;
   doc.setFontSize(10);
-  for (const line of lines) {
-    doc.text(line, 14, y);
-    y += 6;
+  for (const l of summaryLines) {
+    doc.text(l, sx, sy);
+    sy += 5;
   }
-  y += 4;
+  y += cardH + 8;
 
-  // Activity log
-  doc.setFontSize(12);
+  // Activity Log table header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
   doc.text('Activity Log', 14, y);
   y += 6;
+
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
+  const colTimeX = 14;
+  const colDbX = 80;
+  const colStatusX = 110;
+  const rowHeight = 6;
+
+  // Table column titles
+  doc.setDrawColor(220);
+  doc.setFillColor(255, 255, 255);
+  doc.text('Time', colTimeX, y);
+  doc.text('dB', colDbX, y);
+  doc.text('Status', colStatusX, y);
+  y += 4;
+
   if (activityLog.length === 0) {
     doc.text('No loud noise alerts recorded.', 14, y);
-    y += 6;
+    y += rowHeight;
   } else {
     for (let i = 0; i < activityLog.length; i++) {
-      if (y > 270) { doc.addPage(); y = 14; }
       const entry = activityLog[i];
-      const row = `${entry.time} | ${entry.db} dB | ${entry.status}`;
-      doc.text(row, 14, y);
-      y += 6;
+      if (y > 275) { doc.addPage(); y = 16; }
+      doc.text(entry.time, colTimeX, y);
+      doc.text(String(entry.db), colDbX, y);
+      doc.text(entry.status, colStatusX, y);
+      y += rowHeight;
     }
   }
 
   // Recommendations
-  if (y > 240) { doc.addPage(); y = 14; }
+  if (y > 250) { doc.addPage(); y = 16; }
+  y += 6;
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.text('Recommendations', 14, y);
   y += 6;
@@ -423,11 +444,13 @@ function exportPDF() {
   if (avg !== 'N/A' && avg > 65) recs.push('Consider acoustic treatment and optimize sensor placement.');
   if (score < 80) recs.push('Run awareness campaigns and schedule staff reminders.');
   if (recs.length === 0) recs.push('Current status looks good. Maintain monitoring.');
+  doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   for (const r of recs) {
-    if (y > 280) { doc.addPage(); y = 14; }
-    doc.text(`- ${r}`, 14, y);
-    y += 6;
+    if (y > 275) { doc.addPage(); y = 16; }
+    const lines = doc.splitTextToSize('- ' + r, pageWidth - 28);
+    doc.text(lines, 14, y);
+    y += lines.length * 5;
   }
 
   doc.save('noise_report.pdf');

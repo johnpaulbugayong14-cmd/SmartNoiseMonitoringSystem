@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Generate App Icons</title>
+  <style>body{font-family:system-ui;padding:20px;background:#08111d;color:#fff}button{padding:10px 14px;border-radius:8px}</style>
+</head>
+<body>
+  <h1>Generate PNG Icons</h1>
+  <p>Click the button to generate PNG icons for the PWA manifest. Save the downloaded files into the <strong>icons</strong> folder of the project.</p>
+  <button id="gen">Generate icons (192 & 512)</button>
+  <script>
+    document.getElementById('gen').addEventListener('click', () => {
+      const sizes = [192, 512];
+      sizes.forEach(size => {
+        const c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        const ctx = c.getContext('2d');
+        // background gradient
+        const g = ctx.createLinearGradient(0,0,size,size);
+        g.addColorStop(0,'#4d7cfc');
+        g.addColorStop(1,'#3dd598');
+        ctx.fillStyle = g;
+        ctx.fillRect(0,0,size,size);
+        // simple icon bars
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        const w = Math.round(size * 0.12);
+        ctx.beginPath();
+        ctx.roundRect = function(x,y,w,h,r){this.moveTo(x+r,y);this.arcTo(x+w,y,x+w,y+h,r);this.arcTo(x+w,y+h,x,y+h,r);this.arcTo(x,y+h,x,y,r);this.arcTo(x,y,x+w,y,r);}
+        ctx.fillRect(Math.round(size*0.25), Math.round(size*0.15), w, Math.round(size*0.7));
+        ctx.fillRect(Math.round(size*0.45), Math.round(size*0.3), w, Math.round(size*0.55));
+        ctx.fillRect(Math.round(size*0.65), Math.round(size*0.45), w, Math.round(size*0.4));
+        c.toBlob(blob => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `app-icon-${size}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }, 'image/png');
+      });
+    });
+  </script>
+</body>
+</html>
